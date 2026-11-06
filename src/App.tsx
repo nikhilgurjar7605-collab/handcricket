@@ -364,7 +364,6 @@ function App() {
         setPlaceAddress('Coordinates from this device');
         setLat(String(place.lat));
         setLng(String(place.lng));
-        setMapsUrl('');
         setMapsResults([]);
         setMapsSearchQuery('');
         setMapsSearching(false);
@@ -749,19 +748,13 @@ function App() {
                               Entry & exit
                             </small>
                           </div>
-                          <a
+                          <button
                             className="map-link"
-                            href={
-                              'https://www.google.com/maps/search/?api=1&query=' +
-                              place.lat +
-                              ',' +
-                              place.lng
-                            }
-                            target="_blank"
-                            rel="noreferrer"
+                            onClick={() => setPreviewPlace(place)}
+                            title="View this geofence inside LOCATR"
                           >
-                            <ExternalLink size={15} />
-                          </a>
+                            <MapPin size={15} />
+                          </button>
                           <button
                             className="row-delete"
                             onClick={() => deletePlace(place.id)}
@@ -1321,7 +1314,7 @@ function App() {
                   value={lng}
                   onChange={e => setLng(e.target.value)}
                   placeholder="75.XXXXXX"
-                  disabled={!!parseMapsLink(mapsUrl) || !!selectedPlace}
+                  disabled={!!selectedPlace}
                 />
               </label>
             </div>
