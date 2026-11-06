@@ -8,6 +8,7 @@ type Props = {
   position: Position | null;
   radius: number;
   onPick: (point: { lat: number; lng: number }) => void;
+  readOnly?: boolean;
 };
 
 const pinIcon = L.divIcon({
@@ -25,23 +26,23 @@ function MapController({ position }: { position: Position | null }) {
   return null;
 }
 
-function MapClickHandler({ onPick }: { onPick: Props['onPick'] }) {
+function MapClickHandler({ onPick, readOnly }: { onPick: Props['onPick']; readOnly: boolean }) {
   useMapEvents({
     click(event) {
-      onPick({ lat: Number(event.latlng.lat.toFixed(6)), lng: Number(event.latlng.lng.toFixed(6)) });
+      if (!readOnly) onPick({ lat: Number(event.latlng.lat.toFixed(6)), lng: Number(event.latlng.lng.toFixed(6)) });
     },
   });
   return null;
 }
 
-export default function MapPicker({ position, radius, onPick }: Props) {
+export default function MapPicker({ position, radius, onPick, readOnly = false }: Props) {
   const fallback: Position = [20.5937, 78.9629];
   const center = position || fallback;
   return (
     <section className="locatr-map-picker" aria-label="Interactive location picker">
       <div className="locatr-map-toolbar">
         <span><b>PIN YOUR GEOFENCE</b><small>Tap anywhere on the map or drag the marker</small></span>
-        <span className="map-live-indicator">INTERACTIVE MAP</span>
+        <span className="map-live-indicator">{readOnly ? "SAVED LOCATION" : "INTERACTIVE MAP"}</span>
       </div>
       <MapContainer center={center} zoom={position ? 16 : 5} scrollWheelZoom className="locatr-leaflet-map">
         <TileLayer
@@ -49,15 +50,16 @@ export default function MapPicker({ position, radius, onPick }: Props) {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <MapController position={position} />
-        <MapClickHandler onPick={onPick} />
+        <MapClickHandler onPick={onPick} readOnly={readOnly} />
         {position && (
           <>
             <Marker
               position={position}
               icon={pinIcon}
-              draggable
+              draggable={!readOnly}
               eventHandlers={{
                 dragend(event) {
+                  if (readOnly) return;
                   const point = event.target.getLatLng();
                   onPick({ lat: Number(point.lat.toFixed(6)), lng: Number(point.lng.toFixed(6)) });
                 },
