@@ -13,7 +13,6 @@ import {
   Clock3,
   Copy,
   Crosshair,
-  ExternalLink,
   Eye,
   EyeOff,
   Fingerprint,
@@ -77,26 +76,6 @@ const initials = (name: string) =>
     .slice(0, 2)
     .toUpperCase();
 
-function parseMapsLink(value: string) {
-  const decoded = value.replace(/&amp;/g, '&');
-  const patterns = [
-    /@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
-    /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,
-    /[?&](?:q|query|ll|center|destination)=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
-  ];
-  for (const pattern of patterns) {
-    const match = decoded.match(pattern);
-    if (match) {
-      const lat = Number(match[1]);
-      const lng = Number(match[2]);
-      if (Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
-        return { lat, lng };
-      }
-    }
-  }
-  return null;
-}
-
 function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -109,7 +88,6 @@ function App() {
   const [showPerson, setShowPerson] = useState(false);
   const [placeName, setPlaceName] = useState('');
   const [placeAddress, setPlaceAddress] = useState('');
-  const [mapsUrl, setMapsUrl] = useState('');
   const [lat, setLat] = useState('');
   const [lng, setLng] = useState('');
   const [radius, setRadius] = useState('250');
@@ -128,7 +106,7 @@ function App() {
   const [mapsResults, setMapsResults] = useState<MapPlace[]>([]);
   const [mapsSearching, setMapsSearching] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<MapPlace | null>(null);
-  const [mapsResolving, setMapsResolving] = useState(false);
+  const [previewPlace, setPreviewPlace] = useState<Place | null>(null);
 
   const refresh = async () => {
     const response = await api.get('/api/bootstrap');
@@ -215,13 +193,8 @@ function App() {
       setToast('Give this location a name first.');
       return;
     }
-    const coords = selectedPlace
-      ? { lat: selectedPlace.lat, lng: selectedPlace.lng }
-      : mapsUrl
-        ? parseMapsLink(mapsUrl)
-        : null;
-    const finalLat = coords?.lat ?? (lat.trim() === '' ? NaN : Number(lat));
-    const finalLng = coords?.lng ?? (lng.trim() === '' ? NaN : Number(lng));
+    const finalLat = lat.trim() === '' ? NaN : Number(lat);
+    const finalLng = lng.trim() === '' ? NaN : Number(lng);
     if (
       !Number.isFinite(finalLat) ||
       !Number.isFinite(finalLng) ||
@@ -245,7 +218,6 @@ function App() {
       setShowPlace(false);
       setPlaceName('');
       setPlaceAddress('');
-      setMapsUrl('');
       setLat('');
       setLng('');
       setSelectedPlace(null);
@@ -367,41 +339,9 @@ function App() {
     setPlaceAddress(place.address);
     setLat(String(place.lat));
     setLng(String(place.lng));
-    setMapsUrl('');
-    setMapsResults([]);
+        setMapsResults([]);
     setMapsSearchQuery(place.name);
     setToast('Place selected. Review the address and radius, then save.');
-  };
-
-  const resolveGoogleMapsLink = async () => {
-    if (!mapsUrl.trim()) { setToast('Paste a Google Maps share link first.'); return; }
-    const direct = parseMapsLink(mapsUrl);
-    if (direct) {
-      const place: MapPlace = { placeId: 'maps-link', name: placeName.trim() || 'Pinned location', address: placeAddress.trim() || 'Coordinates from Google Maps link', ...direct };
-      setSelectedPlace(place);
-      setPlaceName(place.name);
-      setPlaceAddress(place.address);
-      setLat(String(place.lat));
-      setLng(String(place.lng));
-      setToast('Coordinates detected. Review the pin and radius on the map.');
-      return;
-    }
-    setMapsResolving(true);
-    try {
-      const response = await api.post('/api/maps/resolve', { url: mapsUrl.trim() });
-      const place = response.data.place as MapPlace;
-      if (!place || !Number.isFinite(place.lat) || !Number.isFinite(place.lng)) throw new Error('The share link did not return valid coordinates.');
-      setSelectedPlace(place);
-      setPlaceName(placeName.trim() || place.name);
-      setPlaceAddress(place.address);
-      setLat(String(place.lat));
-      setLng(String(place.lng));
-      setToast('Google Maps pin resolved. Adjust it on the map if needed.');
-    } catch (e) {
-      setToast(e instanceof Error ? e.message : 'Could not resolve this Google Maps link.');
-    } finally {
-      setMapsResolving(false);
-    }
   };
 
   const chooseCurrentLocation = () => {
@@ -1038,18 +978,9 @@ function App() {
                       <Crosshair size={14} /> {p.radius} metre radius
                     </div>
                     <div className="location-card-bottom">
-                      <a
-                        href={
-                          'https://www.google.com/maps/search/?api=1&query=' +
-                          p.lat +
-                          ',' +
-                          p.lng
-                        }
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Open in Google Maps <ExternalLink size={13} />
-                      </a>
+                      <button className="in-app-map-btn" onClick={() => setPreviewPlace(p)}>
+                        <MapPin size={13} /> View in LOCATR
+                      </button>
                       <span className="pending-tag">AWAITING DEVICE</span>
                     </div>
                   </div>
@@ -1292,22 +1223,10 @@ function App() {
                   <span className="coming-pill">NEXT DEVELOPMENT PHASE</span>
                 </section>
                 <section className="surface setting-card">
-                  <div className="setting-icon">
-                    <Globe2 size={19} />
-                  </div>
-                  <h3>Google Maps</h3>
-                  <p>
-                    Use Google Maps to find a place, then paste its share link
-                    when creating a geofence.
-                  </p>
-                  <a
-                    className="setting-link"
-                    href="https://maps.google.com"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Open Google Maps <ExternalLink size={14} />
-                  </a>
+                  <div className="setting-icon"><MapPin size={19} /></div>
+                  <h3>In-app location picker</h3>
+                  <p>Search, select and adjust geofence locations directly inside LOCATR. No external map app is required.</p>
+                  <span className="privacy-pill"><Check size={13} /> Map selection stays in LOCATR</span>
                 </section>
               </div>
             </>
@@ -1336,8 +1255,7 @@ function App() {
               </button>
             </div>
             <p className="modal-intro">
-              Find a place in Google Maps, copy its share link, and paste it
-              below.
+              Search for a place or tap anywhere on the map below. Move the pin to fine-tune your geofence — everything happens inside LOCATR.
             </p>
             <div className="maps-search-link">
               <MapPin size={16} /> Search places or choose a pin directly on the map
@@ -1369,7 +1287,6 @@ function App() {
                 setPlaceAddress(place.address);
                 setLat(String(pickedLat));
                 setLng(String(pickedLng));
-                setMapsUrl('');
               }}
             />
             <label>
@@ -1388,17 +1305,6 @@ function App() {
                 placeholder="Street, area or city"
               />
             </label>
-            <label>
-              GOOGLE MAPS SHARE LINK
-              <input
-                value={mapsUrl}
-                onChange={e => { setMapsUrl(e.target.value); setSelectedPlace(null); setLat(''); setLng(''); }}
-                placeholder="Paste a maps.app.goo.gl or Google Maps link"
-              />
-            </label>
-            <button type="button" className="outline-btn resolve-map-link" disabled={mapsResolving || !mapsUrl.trim()} onClick={resolveGoogleMapsLink}>
-              {mapsResolving ? 'Resolving link…' : 'Resolve Google Maps pin'}
-            </button>
             <div className="coord-grid">
               <label>
                 LATITUDE
@@ -1406,7 +1312,7 @@ function App() {
                   value={lat}
                   onChange={e => setLat(e.target.value)}
                   placeholder="28.XXXXXX"
-                  disabled={!!parseMapsLink(mapsUrl) || !!selectedPlace}
+                  disabled={!!selectedPlace}
                 />
               </label>
               <label>
@@ -1419,11 +1325,6 @@ function App() {
                 />
               </label>
             </div>
-            {parseMapsLink(mapsUrl) && (
-              <div className="parsed-note">
-                <Check size={14} /> Coordinates detected from Google Maps link.
-              </div>
-            )}
             <label>
               GEOFENCE RADIUS
               <select value={radius} onChange={e => setRadius(e.target.value)}>
@@ -1453,6 +1354,24 @@ function App() {
               >
                 {busy ? 'Saving…' : 'Save geofence'} <ArrowUpRight size={15} />
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {previewPlace && (
+        <div className="modal-backdrop" onMouseDown={e => e.target === e.currentTarget && setPreviewPlace(null)}>
+          <div className="modal map-preview-modal">
+            <div className="modal-head">
+              <div>
+                <div className="section-kicker">SAVED GEOFENCE</div>
+                <h2>{previewPlace.name}</h2>
+              </div>
+              <button className="icon-btn" onClick={() => setPreviewPlace(null)}><X size={18}/></button>
+            </div>
+            <p className="modal-intro">{previewPlace.address} · {previewPlace.radius} metre radius</p>
+            <MapPicker position={[previewPlace.lat, previewPlace.lng]} radius={previewPlace.radius} readOnly onPick={() => undefined}/>
+            <div className="modal-actions">
+              <button className="primary-btn" onClick={() => setPreviewPlace(null)}>Done</button>
             </div>
           </div>
         </div>
