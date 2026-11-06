@@ -1654,3 +1654,22 @@ a {
 .selected-place button { border: 0; background: transparent; color: inherit; cursor: pointer; padding: 5px; }
 .picker-hint { margin: 10px 2px 0; line-height: 1.5; }
 .maps-picker{display:grid;gap:8px;margin:0 0 16px}.maps-picker-row{display:flex;gap:8px}.maps-picker-row input{flex:1;min-width:0}.maps-picker-row .primary-btn{white-space:nowrap;padding:10px 12px}.maps-result{display:flex;align-items:center;gap:10px;width:100%;padding:10px 11px;text-align:left;background:#171b2a;border:1px solid rgba(160,170,200,.14);border-radius:8px;color:#a99bff}.maps-result span{flex:1;min-width:0}.maps-result b,.maps-result small{display:block}.maps-result b{font-size:11px;color:#e6e8f1}.maps-result small{font-size:9px;color:#8993a8;margin-top:4px;white-space:normal}.maps-result:hover{border-color:rgba(160,145,255,.5)}@media(max-width:520px){.maps-picker-row{flex-direction:column}.maps-picker-row .primary-btn{width:100%}}
+
+/* Embedded LOCATR map picker */
+.maps-search-link { justify-content: flex-start; flex-wrap: wrap; }
+.maps-link-note { margin-left: auto; color: #81d8ad; font: 9px 'DM Mono'; }
+.resolve-map-link { width: 100%; justify-content: center; margin: -5px 0 14px; }
+.locatr-map-picker { overflow: hidden; margin: 0 0 16px; border: 1px solid rgba(160,170,210,.16); border-radius: 13px; background: #0d1220; }
+.locatr-map-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 13px; border-bottom:1px solid var(--line); }
+.locatr-map-toolbar b,.locatr-map-toolbar small { display:block; }
+.locatr-map-toolbar b { color:#e7e9f3; font: 10px 'DM Mono'; letter-spacing:1px; }
+.locatr-map-toolbar small { color:#8b95aa; font-size:10px; margin-top:4px; }
+.map-live-indicator { color:#8bdab4; font:8px 'DM Mono'; letter-spacing:.8px; white-space:nowrap; }
+.locatr-leaflet-map { width:100%; height:310px; background:#121a2a; z-index:1; }
+.locatr-map-footer { display:flex; justify-content:space-between; gap:10px; padding:10px 12px; color:#8994aa; font:9px 'DM Mono'; }
+.locatr-map-pin-wrap { background:transparent; border:0; }
+.locatr-map-pin { display:block; position:relative; width:23px; height:23px; margin:2px; border:3px solid white; border-radius:50% 50% 50% 0; background:#8b7cff; transform:rotate(-45deg); box-shadow:0 3px 14px #0009; }
+.locatr-map-pin i { position:absolute; width:7px; height:7px; top:5px; left:5px; border-radius:50%; background:white; }
+.leaflet-container { font-family:'DM Sans',sans-serif; }
+.leaflet-control-attribution { font-size:8px !important; }
+@media(max-width:520px) { .locatr-leaflet-map { height:260px; } .locatr-map-toolbar { align-items:flex-start; flex-direction:column; } .locatr-map-footer { flex-direction:column; } }
