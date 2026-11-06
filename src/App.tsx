@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import MapPicker from './MapPicker';
 import { auth, api, notifications } from '@appdeploy/client';
 import {
   Activity,
@@ -127,6 +128,7 @@ function App() {
   const [mapsResults, setMapsResults] = useState<MapPlace[]>([]);
   const [mapsSearching, setMapsSearching] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<MapPlace | null>(null);
+  const [mapsResolving, setMapsResolving] = useState(false);
 
   const refresh = async () => {
     const response = await api.get('/api/bootstrap');
@@ -218,8 +220,8 @@ function App() {
       : mapsUrl
         ? parseMapsLink(mapsUrl)
         : null;
-    const finalLat = coords?.lat ?? Number(lat);
-    const finalLng = coords?.lng ?? Number(lng);
+    const finalLat = coords?.lat ?? (lat.trim() === '' ? NaN : Number(lat));
+    const finalLng = coords?.lng ?? (lng.trim() === '' ? NaN : Number(lng));
     if (
       !Number.isFinite(finalLat) ||
       !Number.isFinite(finalLng) ||
@@ -369,6 +371,37 @@ function App() {
     setMapsResults([]);
     setMapsSearchQuery(place.name);
     setToast('Place selected. Review the address and radius, then save.');
+  };
+
+  const resolveGoogleMapsLink = async () => {
+    if (!mapsUrl.trim()) { setToast('Paste a Google Maps share link first.'); return; }
+    const direct = parseMapsLink(mapsUrl);
+    if (direct) {
+      const place: MapPlace = { placeId: 'maps-link', name: placeName.trim() || 'Pinned location', address: placeAddress.trim() || 'Coordinates from Google Maps link', ...direct };
+      setSelectedPlace(place);
+      setPlaceName(place.name);
+      setPlaceAddress(place.address);
+      setLat(String(place.lat));
+      setLng(String(place.lng));
+      setToast('Coordinates detected. Review the pin and radius on the map.');
+      return;
+    }
+    setMapsResolving(true);
+    try {
+      const response = await api.post('/api/maps/resolve', { url: mapsUrl.trim() });
+      const place = response.data.place as MapPlace;
+      if (!place || !Number.isFinite(place.lat) || !Number.isFinite(place.lng)) throw new Error('The share link did not return valid coordinates.');
+      setSelectedPlace(place);
+      setPlaceName(placeName.trim() || place.name);
+      setPlaceAddress(place.address);
+      setLat(String(place.lat));
+      setLng(String(place.lng));
+      setToast('Google Maps pin resolved. Adjust it on the map if needed.');
+    } catch (e) {
+      setToast(e instanceof Error ? e.message : 'Could not resolve this Google Maps link.');
+    } finally {
+      setMapsResolving(false);
+    }
   };
 
   const chooseCurrentLocation = () => {
@@ -1306,18 +1339,10 @@ function App() {
               Find a place in Google Maps, copy its share link, and paste it
               below.
             </p>
-            <a
-              className="maps-search-link"
-              href={
-                'https://www.google.com/maps/search/' +
-                encodeURIComponent(placeName || 'Search a place')
-              }
-              target="_blank"
-              rel="noreferrer"
-            >
-              <MapPin size={16} /> Search this place in Google Maps{' '}
-              <ExternalLink size={14} />
-            </a>
+            <div className="maps-search-link">
+              <MapPin size={16} /> Search places or choose a pin directly on the map
+              <span className="maps-link-note">No need to leave LOCATR</span>
+            </div>
             <div className="maps-picker">
               <div className="maps-picker-row">
                 <input value={mapsSearchQuery} onChange={e => { setMapsSearchQuery(e.target.value); setSelectedPlace(null); setLat(''); setLng(''); }} onKeyDown={e => { if (e.key === 'Enter') searchGooglePlaces(); }} placeholder="Search home, school, hospital, shop…" />
@@ -1328,6 +1353,25 @@ function App() {
               {selectedPlace && <div className="selected-place"><div className="selected-place-icon"><Check size={16}/></div><div><b>{selectedPlace.name}</b><small>{selectedPlace.address}</small><small>{selectedPlace.lat.toFixed(6)}, {selectedPlace.lng.toFixed(6)}</small></div><button type="button" onClick={() => { setSelectedPlace(null); setLat(''); setLng(''); setPlaceName(''); setPlaceAddress(''); }} aria-label="Clear selected place"><X size={15}/></button></div>}
               <p className="picker-hint">Choose a search result or use your current GPS position. You can edit the location name before saving.</p>
             </div>
+            <MapPicker
+              position={selectedPlace ? [selectedPlace.lat, selectedPlace.lng] : (lat.trim() !== '' && lng.trim() !== '' && Number.isFinite(Number(lat)) && Number.isFinite(Number(lng)) ? [Number(lat), Number(lng)] : null)}
+              radius={Number(radius) || 250}
+              onPick={({ lat: pickedLat, lng: pickedLng }) => {
+                const place: MapPlace = {
+                  placeId: 'map-pin',
+                  name: placeName.trim() || 'Pinned location',
+                  address: placeAddress.trim() || 'Selected on the map',
+                  lat: pickedLat,
+                  lng: pickedLng,
+                };
+                setSelectedPlace(place);
+                setPlaceName(place.name);
+                setPlaceAddress(place.address);
+                setLat(String(pickedLat));
+                setLng(String(pickedLng));
+                setMapsUrl('');
+              }}
+            />
             <label>
               LOCATION NAME
               <input
@@ -1349,9 +1393,12 @@ function App() {
               <input
                 value={mapsUrl}
                 onChange={e => { setMapsUrl(e.target.value); setSelectedPlace(null); setLat(''); setLng(''); }}
-                placeholder="Paste a Google Maps link (with coordinates)"
+                placeholder="Paste a maps.app.goo.gl or Google Maps link"
               />
             </label>
+            <button type="button" className="outline-btn resolve-map-link" disabled={mapsResolving || !mapsUrl.trim()} onClick={resolveGoogleMapsLink}>
+              {mapsResolving ? 'Resolving link…' : 'Resolve Google Maps pin'}
+            </button>
             <div className="coord-grid">
               <label>
                 LATITUDE
