@@ -1,0 +1,85 @@
+[
+  {
+    "name": "Owner creates and retains a geofence",
+    "description": "A signed-in owner saves a radius-based location and verifies it remains available after reloading the workspace.",
+    "sanity": true,
+    "viewport": "desktop",
+    "covers": [
+      "auth",
+      "database persistence",
+      "coordinate validation"
+    ],
+    "steps": [
+      "Sign in",
+      "Add a place with valid coordinates",
+      "Save and refresh"
+    ],
+    "expected": "The geofence persists with the chosen radius."
+  },
+  {
+    "name": "Invitee accepts an invitation and opts in",
+    "description": "A second authenticated user joins an owner's network through an invitation code and independently enables location sharing.",
+    "viewport": "mobile",
+    "covers": [
+      "invite registration",
+      "membership creation",
+      "consent gating"
+    ],
+    "steps": [
+      "Owner creates an invite code",
+      "Invitee signs in and opens People",
+      "Invitee enters the code and accepts",
+      "Invitee explicitly enables sharing"
+    ],
+    "expected": "Sharing remains off until the invitee enables it; membership is created only for the authenticated invitee."
+  },
+  {
+    "name": "Entry and exit geofence transitions create owner alerts",
+    "description": "Server-side distance checks detect a consenting invitee crossing a saved geofence and attempt to send push notifications.",
+    "viewport": "desktop",
+    "covers": [
+      "location endpoint",
+      "distance calculation",
+      "state transition",
+      "push notifications"
+    ],
+    "steps": [
+      "Invitee accepts owner invite and enables sharing",
+      "Invitee sends a coordinate inside a configured radius",
+      "Invitee sends a coordinate outside the radius"
+    ],
+    "expected": "Exactly one entry and one exit event are recorded for the owner, and push notifications are attempted."
+  },
+  {
+    "name": "Invitee can stop location sharing",
+    "description": "An invitee revokes sharing and the backend rejects subsequent location updates.",
+    "viewport": "mobile",
+    "covers": [
+      "sharing revocation",
+      "consent",
+      "location endpoint authorization"
+    ],
+    "steps": [
+      "Enable sharing after accepting an invite",
+      "Stop sharing",
+      "Attempt a location update"
+    ],
+    "expected": "The location endpoint rejects further updates after sharing is disabled."
+  },
+  {
+    "name": "Place picker requires a search term",
+    "description": "The location chooser gives a clear validation message rather than submitting an empty place search.",
+    "viewport": "mobile",
+    "covers": [
+      "Google Maps place selection",
+      "empty search validation",
+      "location picker feedback"
+    ],
+    "steps": [
+      "Open Add a location",
+      "Leave the place search empty",
+      "Tap Search"
+    ],
+    "expected": "A visible message asks for a place name, landmark or full address and no empty search is sent."
+  }
+]
