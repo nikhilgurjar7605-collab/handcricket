@@ -1673,3 +1673,10 @@ a {
 .leaflet-container { font-family:'DM Sans',sans-serif; }
 .leaflet-control-attribution { font-size:8px !important; }
 @media(max-width:520px) { .locatr-leaflet-map { height:260px; } .locatr-map-toolbar { align-items:flex-start; flex-direction:column; } .locatr-map-footer { flex-direction:column; } }
+
+/* Keep every map interaction inside LOCATR */
+.in-app-map-btn { display:flex; align-items:center; gap:6px; padding:7px 9px; border:1px solid rgba(150,135,255,.25); border-radius:7px; background:rgba(137,119,255,.09); color:#b9adff; font-size:9px; cursor:pointer; }
+.in-app-map-btn:hover { border-color:rgba(150,135,255,.6); background:rgba(137,119,255,.16); }
+.map-preview-modal { width:min(100%,760px); }
+.map-preview-modal .locatr-leaflet-map { height: min(58vh,480px); }
+.location-card-bottom { flex-wrap:wrap; }
